@@ -398,16 +398,26 @@
     }
 
     // Auto-scroll suave na lista de pilotos caso ultrapasse a altura da TV
+    // Auto-scroll inteligente por páginas com pausa no topo e no final
+    let rolando = true;
+
     setInterval(() => {
       const el = document.getElementById('containerPilotos');
-      if (el) {
-        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+      if (!el || !rolando) return;
+
+      // Verifica se a lista tem barra de rolagem (se precisa rolar)
+      if (el.scrollHeight <= el.clientHeight) return;
+
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+        rolando = false;
+        setTimeout(() => {
           el.scrollTop = 0;
-        } else {
-          el.scrollTop += 1;
-        }
+          setTimeout(() => { rolando = true; }, 4000); // Pausa de 4 segundos no topo
+        }, 3000); // Pausa de 3 segundos no final da lista
+      } else {
+        el.scrollTop += 1;
       }
-    }, 40);
+    }, 60);
 
     carregarLogosCache();
   </script>
