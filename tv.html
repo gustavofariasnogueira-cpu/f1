@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>F1 Casos - Standings TV Display</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: radial-gradient(circle at top center, #0d1117 0%, #030712 100%);
+    }
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+    .neon-border-red {
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Animação do Letreiro Infinito no Rodapé */
+    @keyframes ticker {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-50%, 0, 0); }
+    }
+    .ticker-wrap {
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .ticker-move {
+      display: inline-flex;
+      animation: ticker 35s linear infinite;
+    }
+    .ticker-move:hover {
+      animation-play-state: paused;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen p-6 pb-16 flex flex-col justify-between select-none overflow-hidden relative">
+
+  <!-- CABEÇALHO FUTURISTA -->
+  <header class="glass-card rounded-2xl p-4 mb-4 flex justify-between items-center border-l-4 border-l-red-600 neon-border-red">
+    <div class="flex items-center gap-4">
+      <div class="bg-gradient-to-r from-red-600 to-red-700 text-white font-orbitron font-black text-2xl px-5 py-2 rounded-xl tracking-tighter shadow-lg flex items-center gap-2">
+        <span>🏎️</span> F1 CASOS
+      </div>
+      <div>
+        <h1 class="text-2xl font-orbitron font-black tracking-widest uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+          SEASON STANDINGS
+        </h1>
+        <p class="text-xs text-red-400 font-bold tracking-widest uppercase">
+          Painel de Controle de Casos • Atualização em Tempo Real
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-6">
+      <button onclick="toggleModalLogos()" class="bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
+        🖼️ Logos Escuderias
+      </button>
+
+      <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-xs font-orbitron font-bold text-emerald-400 uppercase tracking-wider">LIVE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL: DADOS LADO A LADO -->
+  <main class="grid grid-cols-12 gap-6 flex-1 overflow-hidden">
+    
+    <!-- COLUNA DA ESQUERDA: MUNDIAL DE PILOTOS (8 Colunas com Scroll Suave) -->
+    <section class="col-span-8 glass-card rounded-2xl p-5 flex flex-col h-[calc(100vh-170px)]">
+      <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2 flex-shrink-0">
+        <h2 class="font-orbitron font-bold text-lg text-slate-200 flex items-center gap-2">
+          <span class="text-red-500">▌</span> MUNDIAL DE PILOTOS
+        </h2>
+        <span class="text-xs text-slate-400">Progresso individual na pista</span>
+      </div>
+
+      <div id="containerPilotos" class="space-y-3 flex-1 overflow-y-auto pr-1 scroll-smooth">
+        <!-- Linhas geradas via JS -->
+      </div>
+    </section>
+
+    <!-- COLUNA DA DIREITA: MUNDIAL DE CONSTRUTORES (4 Colunas) -->
+    <section class="col-span-4 glass-card rounded-2xl p-5 flex flex-col h-[calc(100vh-170px)]">
+      <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2 flex-shrink-0">
+        <h2 class="font-orbitron font-bold text-lg text-slate-200 flex items-center gap-2">
+          <span class="text-red-500">▌</span> CONSTRUTORES
+        </h2>
+        <span class="text-xs text-slate-400">Pontuação por Escuderia</span>
+      </div>
+
+      <div id="containerConstrutores" class="space-y-3 flex-1 overflow-y-auto pr-1">
+        <!-- Linhas geradas via JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- RODAPÉ ESTILO NOTÍCIA DA F1 (CLASSIFICAÇÃO EM TEMPO REAL PASSANDO) -->
+  <footer class="fixed bottom-0 left-0 right-0 bg-slate-950/95 border-t border-red-600/40 h-10 flex items-center z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.8)]">
+    <div class="bg-gradient-to-r from-red-600 to-red-700 text-white font-orbitron font-black text-xs h-full px-4 flex items-center gap-2 flex-shrink-0 z-10 shadow-lg">
+      <span>🏁</span> CLASSIFICAÇÃO AO VIVO
+    </div>
+
+    <!-- ÁREA DE TEXTO EM MOVIMENTO -->
+    <div class="ticker-wrap flex-1 h-full flex items-center overflow-hidden">
+      <div id="tickerContent" class="ticker-move items-center gap-6 text-sm font-semibold uppercase tracking-wider text-slate-200">
+        <!-- Texto do Ticker gerado via JS -->
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL PARA CARREGAR LOGOS -->
+  <div id="modalLogos" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-orbitron font-bold text-lg text-white flex items-center gap-2">
+          🖼️ Carregar Logos das Escuderias
+        </h3>
+        <button onclick="toggleModalLogos()" class="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-400">
+        Selecione a imagem do seu computador para cada escuderia. Ela ficará salva localmente neste navegador da TV.
+      </p>
+
+      <div id="listaLogosEscuderias" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+        <!-- Lista de upload gerada via JS -->
+      </div>
+
+      <button onclick="toggleModalLogos()" class="w-full bg-red-600 hover:bg-red-500 text-white font-orbitron font-bold py-2 rounded-xl text-sm transition">
+        Concluído
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let localLogosCache = {};
+
+    function abrirDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('f1_tv_logos', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('logos');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function carregarLogosCache() {
+      try {
+        const db = await abrirDB();
+        const tx = db.transaction('logos', 'readonly');
+        const store = tx.objectStore('logos');
+        const req = store.openCursor();
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            localLogosCache[cursor.key] = cursor.value;
+            cursor.continue();
+          } else {
+            carregarDados();
+          }
+        };
+      } catch (err) {
+        carregarDados();
+      }
+    }
+
+    async function salvarLogoCache(escuderiaId, base64) {
+      localLogosCache[escuderiaId] = base64;
+      const db = await abrirDB();
+      const tx = db.transaction('logos', 'readwrite');
+      tx.objectStore('logos').put(base64, escuderiaId);
+      carregarDados();
+      atualizarModalLogos();
+    }
+
+    function toggleModalLogos() {
+      const modal = document.getElementById('modalLogos');
+      modal.classList.toggle('hidden');
+      if (!modal.classList.contains('hidden')) {
+        atualizarModalLogos();
+      }
+    }
+
+    function atualizarModalLogos() {
+      const data = JSON.parse(localStorage.getItem('f1_casos_db')) || { escuderias: [] };
+      const container = document.getElementById('listaLogosEscuderias');
+      container.innerHTML = '';
+
+      if (data.escuderias.length === 0) {
+        container.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">Nenhuma escuderia cadastrada no painel.</div>';
+        return;
+      }
+
+      data.escuderias.forEach(e => {
+        const temLogo = localLogosCache[e.id];
+        container.innerHTML += `
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="w-3 h-3 rounded-full" style="background-color: ${e.cor}"></span>
+              <span class="font-bold text-sm text-white uppercase">${e.nome}</span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              ${temLogo ? `<img src="${temLogo}" class="w-6 h-6 object-contain border rounded bg-slate-900 p-0.5 border-slate-700">` : ''}
+              <label class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 px-3 py-1.5 rounded-lg cursor-pointer border border-slate-700 font-semibold transition">
+                <span>${temLogo ? 'Trocar' : 'Carregar'}</span>
+                <input type="file" accept="image/*" class="hidden" onchange="processarUploadLogo('${e.id}', this)">
+              </label>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function processarUploadLogo(escuderiaId, input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          salvarLogoCache(escuderiaId, e.target.result);
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function carregarDados() {
+      const data = JSON.parse(localStorage.getItem('f1_casos_db')) || { escuderias: [], pilotos: [] };
+      renderizar(data);
+    }
+
+    function renderizar(data) {
+      // 1. PROCESSAR E RENDERIZAR PILOTOS
+      const containerPilotos = document.getElementById('containerPilotos');
+      containerPilotos.innerHTML = '';
+
+      const pilotosCalculados = data.pilotos.map(p => {
+        const esc = data.escuderias.find(e => e.id === p.escuderiaId) || { id: '', nome: 'N/A', cor: '#ef4444' };
+        const pontos = Math.max(0, p.casos - p.penalidades);
+        const logo = localLogosCache[esc.id] || '';
+        return { ...p, pontos, escuderiaNome: esc.nome, cor: esc.cor, logo };
+      }).sort((a, b) => b.pontos - a.pontos);
+
+      if (pilotosCalculados.length === 0) {
+        containerPilotos.innerHTML = '<div class="text-center py-16 text-slate-500 font-orbitron text-sm">Nenhum piloto registrado.</div>';
+      }
+
+      // Meta dinâmica baseada no líder (mínimo de 50)
+      const maiorPontuacao = Math.max(...pilotosCalculados.map(p => p.pontos), 50);
+
+      pilotosCalculados.forEach((p, index) => {
+        const percentual = Math.min(100, Math.max(0, (p.pontos / maiorPontuacao) * 100));
+        
+        let badgeStyle = "bg-slate-800/80 text-slate-400 border-slate-700";
+        if (index === 0) badgeStyle = "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.3)]";
+        if (index === 1) badgeStyle = "bg-slate-300/20 text-slate-200 border-slate-300/50";
+        if (index === 2) badgeStyle = "bg-amber-700/20 text-amber-600 border-amber-700/50";
+
+        const logoHTML = p.logo 
+          ? `<img src="${p.logo}" alt="${p.escuderiaNome}" class="w-6 h-6 object-contain">`
+          : `<span class="w-3 h-3 rounded-full" style="background-color: ${p.cor}"></span>`;
+
+        containerPilotos.innerHTML += `
+          <div class="relative bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 transition-all">
+            <div class="flex justify-between items-center z-10">
+              <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-lg border flex items-center justify-center font-orbitron font-bold text-sm ${badgeStyle}">
+                  P${index + 1}
+                </span>
+                
+                <div class="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center p-1">
+                  ${logoHTML}
+                </div>
+
+                <div>
+                  <h3 class="font-bold text-base text-white tracking-wide uppercase leading-tight">
+                    ${p.nome}
+                  </h3>
+                  <span class="text-xs font-semibold uppercase text-slate-400 flex items-center gap-1.5 mt-0.5">
+                    ${p.escuderiaNome}
+                  </span>
+                </div>
+              </div>
+              
+              <div class="text-right">
+                <span class="font-orbitron font-black text-2xl text-white tracking-tight" style="text-shadow: 0 0 10px ${p.cor}88">
+                  ${p.pontos} <span class="text-xs text-slate-400 font-normal">PTS</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="relative w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800/60 mt-1">
+              <div class="h-full rounded-full transition-all duration-700 ease-out relative" 
+                   style="width: ${percentual}%; background-color: ${p.cor}; box-shadow: 0 0 12px ${p.cor}">
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      // 2. PROCESSAR E RENDERIZAR CONSTRUTORES
+      const containerConstrutores = document.getElementById('containerConstrutores');
+      containerConstrutores.innerHTML = '';
+
+      const construtores = data.escuderias.map(e => {
+        const pontosTotais = data.pilotos
+          .filter(p => p.escuderiaId === e.id)
+          .reduce((acc, cur) => acc + Math.max(0, cur.casos - cur.penalidades), 0);
+        const logo = localLogosCache[e.id] || '';
+        return { ...e, pontos: pontosTotais, logo };
+      }).sort((a, b) => b.pontos - a.pontos);
+
+      if (construtores.length === 0) {
+        containerConstrutores.innerHTML = '<div class="text-center py-16 text-slate-500 font-orbitron text-sm">Nenhuma escuderia.</div>';
+      }
+
+      construtores.forEach((c, index) => {
+        const logoHTML = c.logo 
+          ? `<img src="${c.logo}" alt="${c.nome}" class="w-7 h-7 object-contain">`
+          : `<span class="w-3 h-3 rounded-full" style="background-color: ${c.cor}"></span>`;
+
+        containerConstrutores.innerHTML += `
+          <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex justify-between items-center transition-all" style="border-left: 4px solid ${c.cor}">
+            <div class="flex items-center gap-3">
+              <span class="font-orbitron font-bold text-slate-500 text-sm w-4">
+                ${index + 1}
+              </span>
+
+              <div class="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center p-1">
+                ${logoHTML}
+              </div>
+
+              <div>
+                <h4 class="font-bold text-sm text-white uppercase tracking-wide">
+                  ${c.nome}
+                </h4>
+              </div>
+            </div>
+            
+            <div class="bg-slate-950 px-3 py-1 rounded-lg border border-slate-800 font-orbitron font-black text-lg text-slate-200">
+              ${c.pontos} <span class="text-[10px] text-slate-500">PTS</span>
+            </div>
+          </div>
+        `;
+      });
+
+      // 3. ATUALIZAR O TICKER / RODAPÉ DE NOTÍCIAS COM A CLASSIFICAÇÃO COMPLETA
+      const tickerContent = document.getElementById('tickerContent');
+      let tickerHTML = '';
+
+      if (pilotosCalculados.length > 0) {
+        const itensTicker = pilotosCalculados.map((p, idx) => `
+          <span class="flex items-center gap-2">
+            <span class="text-red-500 font-orbitron font-bold">P${idx + 1}</span>
+            <span class="font-bold text-white">${p.nome}</span>
+            <span class="text-xs text-slate-400">(${p.escuderiaNome})</span>
+            <span class="font-orbitron text-emerald-400 font-bold">${p.pontos} PTS</span>
+          </span>
+        `).join(' <span class="text-slate-600 font-black">/</span> ');
+
+        // Duplicamos o conteúdo para o efeito de rotação sem emenda (Loop Infinito)
+        tickerHTML = `<div class="flex items-center gap-6 px-4">${itensTicker}</div><div class="flex items-center gap-6 px-4">${itensTicker}</div>`;
+      } else {
+        tickerHTML = '<span class="text-slate-500 px-4">AGUARDANDO CADASTRO DE PILOTOS...</span>';
+      }
+
+      tickerContent.innerHTML = tickerHTML;
+    }
+
+    // Auto-scroll suave na lista de pilotos caso ultrapasse a altura da TV
+    setInterval(() => {
+      const el = document.getElementById('containerPilotos');
+      if (el) {
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+          el.scrollTop = 0; // Volta pro topo
+        } else {
+          el.scrollTop += 1; // Rola devagarinho 1px por vez
+        }
+      }
+    }, 40);
+
+    window.addEventListener('storage', carregarDados);
+    setInterval(carregarDados, 1000);
+    carregarLogosCache();
+  </script>
+</body>
+</html>

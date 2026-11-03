@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Controle - Corrida de Casos F1</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-6">
+  <div class="max-w-5xl mx-auto space-y-6">
+    
+    <!-- Cabeçalho -->
+    <header class="flex justify-between items-center border-b border-slate-700 pb-4">
+      <div>
+        <h1 class="text-2xl font-bold text-red-500 flex items-center gap-2">
+          🏎️ Painel do Supervisor - F1 Casos
+        </h1>
+        <p class="text-sm text-slate-400">Gerenciamento e lançamento de pontos em tempo real</p>
+      </div>
+      <button id="btnReset" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+        ⚠️ Zerar Corrida
+      </button>
+    </header>
+
+    <!-- Grid de Formulários e Controles -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- 1. Form Cadastrar Escuderia -->
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <h2 class="font-bold text-lg mb-3 text-slate-200">1. Cadastrar Escuderia</h2>
+        <form id="formEscuderia" class="space-y-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Nome da Equipe:</label>
+            <input type="text" id="nomeEscuderia" placeholder="Ex: Red Bull Racing" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-red-500">
+          </div>
+
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Cor da Escuderia:</label>
+            <input type="color" id="corEscuderia" value="#ef4444" class="w-full h-9 bg-slate-900 border border-slate-700 rounded cursor-pointer">
+          </div>
+
+          <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-semibold py-2 rounded text-sm transition">
+            + Adicionar Escuderia
+          </button>
+        </form>
+      </div>
+
+      <!-- 2. Form Cadastrar Piloto -->
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <h2 class="font-bold text-lg mb-3 text-slate-200">2. Cadastrar Piloto</h2>
+        <form id="formPiloto" class="space-y-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Nome do Colaborador:</label>
+            <input type="text" id="nomePiloto" placeholder="Ex: Ayrton Senna" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Escuderia:</label>
+            <select id="selectEscuderia" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-red-500">
+              <option value="">Selecione a Escuderia</option>
+            </select>
+          </div>
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded text-sm transition mt-6">
+            + Adicionar Piloto
+          </button>
+        </form>
+      </div>
+
+      <!-- 3. Lançamento Flexível de Pontos/Penalidades -->
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <h2 class="font-bold text-lg mb-3 text-slate-200">3. Lançamento de Pontos</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Selecione o Piloto:</label>
+            <select id="selectPilotoLancamento" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-red-500">
+              <option value="">Selecione o Piloto</option>
+            </select>
+          </div>
+
+          <!-- Inserção Personalizada de Pontos -->
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Quantidade de Casos / Pontos:</label>
+            <div class="flex gap-2">
+              <input type="number" id="qtdPontosCustom" min="1" value="1" placeholder="Qtd" class="w-24 bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white font-bold text-center focus:outline-none focus:border-red-500">
+              <button id="btnAdicionarCustom" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs uppercase tracking-wider transition">
+                + Adicionar
+              </button>
+              <button id="btnRemoverCustom" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold px-3 py-2 rounded text-xs transition" title="Subtrair Casos">
+                -
+              </button>
+            </div>
+          </div>
+
+          <!-- Botões de Lançamento Rápido -->
+          <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-700">
+            <button id="btnMaisUm" class="bg-emerald-900/40 hover:bg-emerald-800/60 text-emerald-400 border border-emerald-700/50 font-semibold py-1.5 rounded text-xs">+1 Rápido</button>
+            <button id="btnMaisCinco" class="bg-emerald-900/40 hover:bg-emerald-800/60 text-emerald-400 border border-emerald-700/50 font-semibold py-1.5 rounded text-xs">+5 Rápido</button>
+          </div>
+
+          <!-- Penalidades -->
+          <div class="border-t border-slate-700 pt-2">
+            <label class="text-xs text-amber-400 font-semibold block mb-1">Aplicar Penalidade:</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btnPenalidadeUm" class="bg-amber-600/30 hover:bg-amber-600/60 text-amber-300 border border-amber-600/50 font-bold py-1.5 rounded text-xs">-1 Ponto</button>
+              <button id="btnPenalidadeCinco" class="bg-red-700/30 hover:bg-red-700/60 text-red-300 border border-red-600/50 font-bold py-1.5 rounded text-xs">-5 Pontos</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tabela Resumo das Escuderias -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+      <h2 class="font-bold text-lg mb-3 text-slate-200">Escuderias Cadastradas</h2>
+      <div id="listaEscuderias" class="flex flex-wrap gap-3">
+        <!-- Badges das escuderias -->
+      </div>
+    </div>
+
+    <!-- Tabela Resumo dos Pilotos -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+      <h2 class="font-bold text-lg mb-3 text-slate-200">Grid Atual de Pilotos</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-900 text-slate-400">
+            <tr>
+              <th class="p-2">Piloto</th>
+              <th class="p-2">Escuderia</th>
+              <th class="p-2 text-center">Casos Concluídos</th>
+              <th class="p-2 text-center">Penalidades</th>
+              <th class="p-2 text-right">Pontuação Final</th>
+              <th class="p-2 text-center">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaAdminBody" class="divide-y divide-slate-700">
+            <!-- Linhas geradas via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let db = JSON.parse(localStorage.getItem('f1_casos_db')) || { escuderias: [], pilotos: [] };
+
+    function salvar() {
+      localStorage.setItem('f1_casos_db', JSON.stringify(db));
+      window.dispatchEvent(new Event('storage'));
+      atualizarInterface();
+    }
+
+    function atualizarInterface() {
+      // 1. Lista de Escuderias Cadastradas
+      const containerEscuderias = document.getElementById('listaEscuderias');
+      if (containerEscuderias) {
+        containerEscuderias.innerHTML = '';
+        if (db.escuderias.length === 0) {
+          containerEscuderias.innerHTML = '<span class="text-xs text-slate-500">Nenhuma escuderia cadastrada.</span>';
+        }
+        db.escuderias.forEach(e => {
+          containerEscuderias.innerHTML += `
+            <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-sm">
+              <span class="w-3 h-3 rounded-full" style="background-color: ${e.cor}"></span>
+              <span class="font-semibold">${e.nome}</span>
+              <button onclick="excluirEscuderia('${e.id}')" title="Excluir Escuderia" class="text-slate-500 hover:text-red-400 ml-2 font-bold">
+                ✕
+              </button>
+            </div>
+          `;
+        });
+      }
+
+      // 2. Select Escuderias
+      const selectEscuderia = document.getElementById('selectEscuderia');
+      if (selectEscuderia) {
+        selectEscuderia.innerHTML = '<option value="">Selecione a Escuderia</option>';
+        db.escuderias.forEach(e => {
+          selectEscuderia.innerHTML += `<option value="${e.id}">${e.nome}</option>`;
+        });
+      }
+
+      // 3. Select Pilotos
+      const selectPiloto = document.getElementById('selectPilotoLancamento');
+      if (selectPiloto) {
+        selectPiloto.innerHTML = '<option value="">Selecione o Piloto</option>';
+        db.pilotos.forEach(p => {
+          selectPiloto.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
+        });
+      }
+
+      // 4. Tabela do Grid
+      const tbody = document.getElementById('tabelaAdminBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        db.pilotos.forEach(p => {
+          const esc = db.escuderias.find(e => e.id === p.escuderiaId) || { nome: 'N/A', cor: '#999' };
+          const pontosFinais = Math.max(0, p.casos - p.penalidades);
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-750">
+              <td class="p-2 font-semibold">${p.nome}</td>
+              <td class="p-2 flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background-color: ${esc.cor}"></span>
+                ${esc.nome}
+              </td>
+              <td class="p-2 text-center text-emerald-400 font-bold">${p.casos}</td>
+              <td class="p-2 text-center text-red-400 font-bold">${p.penalidades}</td>
+              <td class="p-2 text-right font-black text-lg">${pontosFinais} pts</td>
+              <td class="p-2 text-center">
+                <button onclick="excluirPiloto('${p.id}')" class="text-xs bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-2 py-1 rounded transition">
+                  🗑️ Excluir
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+    }
+
+    // Exclusão
+    function excluirEscuderia(id) {
+      if (confirm('Tem certeza que deseja excluir esta escuderia?')) {
+        db.escuderias = db.escuderias.filter(e => e.id !== id);
+        salvar();
+      }
+    }
+
+    function excluirPiloto(id) {
+      if (confirm('Tem certeza que deseja excluir este piloto?')) {
+        db.pilotos = db.pilotos.filter(p => p.id !== id);
+        salvar();
+      }
+    }
+
+    // Cadastros
+    document.getElementById('formEscuderia').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('nomeEscuderia').value;
+      const cor = document.getElementById('corEscuderia').value;
+      
+      db.escuderias.push({ id: Date.now().toString(), nome, cor });
+      salvar();
+      document.getElementById('nomeEscuderia').value = '';
+    });
+
+    document.getElementById('formPiloto').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('nomePiloto').value;
+      const escuderiaId = document.getElementById('selectEscuderia').value;
+      
+      if (!escuderiaId) return alert('Selecione uma escuderia!');
+      
+      db.pilotos.push({ id: Date.now().toString(), nome, escuderiaId, casos: 0, penalidades: 0 });
+      document.getElementById('nomePiloto').value = '';
+      salvar();
+    });
+
+    // Alteração de Pontos
+    function alterarPontos(casosDiff, penDiff) {
+      const pilotoId = document.getElementById('selectPilotoLancamento').value;
+      if (!pilotoId) return alert('Selecione um piloto!');
+      const piloto = db.pilotos.find(p => p.id === pilotoId);
+      if (piloto) {
+        piloto.casos = Math.max(0, piloto.casos + casosDiff);
+        piloto.penalidades = Math.max(0, piloto.penalidades + penDiff);
+        salvar();
+      }
+    }
+
+    // Handlers Customizados
+    document.getElementById('btnAdicionarCustom').onclick = () => {
+      const val = parseInt(document.getElementById('qtdPontosCustom').value) || 1;
+      alterarPontos(val, 0);
+    };
+
+    document.getElementById('btnRemoverCustom').onclick = () => {
+      const val = parseInt(document.getElementById('qtdPontosCustom').value) || 1;
+      alterarPontos(-val, 0);
+    };
+
+    // Handlers Rápidos
+    document.getElementById('btnMaisUm').onclick = () => alterarPontos(1, 0);
+    document.getElementById('btnMaisCinco').onclick = () => alterarPontos(5, 0);
+    document.getElementById('btnPenalidadeUm').onclick = () => alterarPontos(0, 1);
+    document.getElementById('btnPenalidadeCinco').onclick = () => alterarPontos(0, 5);
+
+    document.getElementById('btnReset').onclick = () => {
+      if (confirm('Tem certeza que deseja zerar a pontuação de todos os pilotos?')) {
+        db.pilotos.forEach(p => { p.casos = 0; p.penalidades = 0; });
+        salvar();
+      }
+    };
+
+    atualizarInterface();
+  </script>
+</body>
+</html>
