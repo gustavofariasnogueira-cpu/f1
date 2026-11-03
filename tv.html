@@ -6,6 +6,11 @@
   <title>F1 Casos - Standings TV Display</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- FIREBASE SDKs (v9 CDN Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
   <style>
     body {
       font-family: 'Rajdhani', sans-serif;
@@ -53,7 +58,7 @@
           SEASON STANDINGS
         </h1>
         <p class="text-xs text-red-400 font-bold tracking-widest uppercase">
-          Painel de Controle de Casos • Atualização em Tempo Real
+          Painel de Controle de Casos • Ao Vivo via Cloud
         </p>
       </div>
     </div>
@@ -65,7 +70,7 @@
 
       <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-        <span class="text-xs font-orbitron font-bold text-emerald-400 uppercase tracking-wider">LIVE</span>
+        <span class="text-xs font-orbitron font-bold text-emerald-400 uppercase tracking-wider">FIREBASE LIVE</span>
       </div>
     </div>
   </header>
@@ -142,7 +147,22 @@
   </div>
 
   <script>
+    // Configuração com as tuas credenciais reais do Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyB7-WnPu1-Xi5J5YPAXEgC7z7KrAXxjtaM",
+      authDomain: "f1-one-70a73.firebaseapp.com",
+      databaseURL: "https://f1-one-70a73-default-rtdb.firebaseio.com",
+      projectId: "f1-one-70a73",
+      storageBucket: "f1-one-70a73.firebasestorage.app",
+      messagingSenderId: "658993416912",
+      appId: "1:658993416912:web:9c32a8e37db0fcc7caacd5"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const dbRef = firebase.database().ref('f1_casos_db');
+
     let localLogosCache = {};
+    let dadosCacheGlobal = null;
 
     function abrirDB() {
       return new Promise((resolve, reject) => {
@@ -164,13 +184,9 @@
           if (cursor) {
             localLogosCache[cursor.key] = cursor.value;
             cursor.continue();
-          } else {
-            carregarDados();
           }
         };
-      } catch (err) {
-        carregarDados();
-      }
+      } catch (err) {}
     }
 
     async function salvarLogoCache(escuderiaId, base64) {
@@ -178,8 +194,8 @@
       const db = await abrirDB();
       const tx = db.transaction('logos', 'readwrite');
       tx.objectStore('logos').put(base64, escuderiaId);
-      carregarDados();
       atualizarModalLogos();
+      if (dadosCacheGlobal) renderizar(dadosCacheGlobal);
     }
 
     function toggleModalLogos() {
@@ -191,17 +207,17 @@
     }
 
     function atualizarModalLogos() {
-      const data = JSON.parse(localStorage.getItem('f1_casos_db')) || { escuderias: [] };
       const container = document.getElementById('listaLogosEscuderias');
       container.innerHTML = '';
 
-      if (data.escuderias.length === 0) {
-        container.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">Nenhuma escuderia cadastrada no painel.</div>';
+      if (!dadosCacheGlobal || !dadosCacheGlobal.escuderias) {
+        container.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">Nenhuma escuderia cadastrada.</div>';
         return;
       }
 
-      data.escuderias.forEach(e => {
-        const temLogo = localLogosCache[e.id];
+      Object.keys(dadosCacheGlobal.escuderias).forEach(id => {
+        const e = dadosCacheGlobal.escuderias[id];
+        const temLogo = localLogosCache[id];
         container.innerHTML += `
           <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
@@ -213,7 +229,7 @@
               ${temLogo ? `<img src="${temLogo}" class="w-6 h-6 object-contain border rounded bg-slate-900 p-0.5 border-slate-700">` : ''}
               <label class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 px-3 py-1.5 rounded-lg cursor-pointer border border-slate-700 font-semibold transition">
                 <span>${temLogo ? 'Trocar' : 'Carregar'}</span>
-                <input type="file" accept="image/*" class="hidden" onchange="processarUploadLogo('${e.id}', this)">
+                <input type="file" accept="image/*" class="hidden" onchange="processarUploadLogo('${id}', this)">
               </label>
             </div>
           </div>
@@ -231,20 +247,27 @@
       }
     }
 
-    function carregarDados() {
-      const data = JSON.parse(localStorage.getItem('f1_casos_db')) || { escuderias: [], pilotos: [] };
-      renderizar(data);
-    }
+    // Escutador em Tempo Real do Firebase
+    dbRef.on('value', (snapshot) => {
+      dadosCacheGlobal = snapshot.val();
+      renderizar(dadosCacheGlobal);
+    });
 
     function renderizar(data) {
+      const rawEscuderias = (data && data.escuderias) ? data.escuderias : {};
+      const rawPilotos = (data && data.pilotos) ? data.pilotos : {};
+
+      const escArray = Object.keys(rawEscuderias).map(k => ({ id: k, ...rawEscuderias[k] }));
+      const pilArray = Object.keys(rawPilotos).map(k => ({ id: k, ...rawPilotos[k] }));
+
       // 1. PROCESSAR E RENDERIZAR PILOTOS
       const containerPilotos = document.getElementById('containerPilotos');
       containerPilotos.innerHTML = '';
 
-      const pilotosCalculados = data.pilotos.map(p => {
-        const esc = data.escuderias.find(e => e.id === p.escuderiaId) || { id: '', nome: 'N/A', cor: '#ef4444' };
+      const pilotosCalculados = pilArray.map(p => {
+        const esc = rawEscuderias[p.escuderiaId] || { nome: 'N/A', cor: '#ef4444' };
         const pontos = Math.max(0, p.casos - p.penalidades);
-        const logo = localLogosCache[esc.id] || '';
+        const logo = localLogosCache[p.escuderiaId] || '';
         return { ...p, pontos, escuderiaNome: esc.nome, cor: esc.cor, logo };
       }).sort((a, b) => b.pontos - a.pontos);
 
@@ -309,8 +332,8 @@
       const containerConstrutores = document.getElementById('containerConstrutores');
       containerConstrutores.innerHTML = '';
 
-      const construtores = data.escuderias.map(e => {
-        const pontosTotais = data.pilotos
+      const construtores = escArray.map(e => {
+        const pontosTotais = pilArray
           .filter(p => p.escuderiaId === e.id)
           .reduce((acc, cur) => acc + Math.max(0, cur.casos - cur.penalidades), 0);
         const logo = localLogosCache[e.id] || '';
@@ -379,15 +402,13 @@
       const el = document.getElementById('containerPilotos');
       if (el) {
         if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
-          el.scrollTop = 0; // Volta pro topo
+          el.scrollTop = 0;
         } else {
-          el.scrollTop += 1; // Rola devagarinho 1px por vez
+          el.scrollTop += 1;
         }
       }
     }, 40);
 
-    window.addEventListener('storage', carregarDados);
-    setInterval(carregarDados, 1000);
     carregarLogosCache();
   </script>
 </body>
