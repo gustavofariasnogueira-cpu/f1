@@ -1,45 +1,37 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- Cabeçalho com Botão de Acesso Rápido à TV -->
-<header class="flex flex-wrap justify-between items-center border-b border-slate-700 pb-4 gap-4">
-  <div>
-    <h1 class="text-2xl font-bold text-red-500 flex items-center gap-2">
-      🏎️ Painel do Supervisor - F1 Casos (Firebase)
-    </h1>
-    <p class="text-sm text-slate-400">Sincronização em nuvem via Realtime Database</p>
-  </div>
-
-  <div class="flex items-center gap-3">
-    <!-- BOTÃO PARA ABRIR A TV -->
-    <a href="tv.html" target="_blank" class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition transform active:scale-95">
-      📺 Abrir Display da TV
-    </a>
-
-    <button id="btnReset" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-3 py-2 rounded-xl text-xs font-semibold transition">
-      ⚠️ Zerar Corrida
-    </button>
-  </div>
-</header>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Controle - Corrida de Casos F1</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FIREBASE SDKs (v9 CDN Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body class="bg-slate-900 text-white min-h-screen p-6">
   <div class="max-w-5xl mx-auto space-y-6">
     
-    <!-- Cabeçalho -->
-    <header class="flex justify-between items-center border-b border-slate-700 pb-4">
+    <!-- Cabeçalho com Botão de Acesso Rápido à TV -->
+    <header class="flex flex-wrap justify-between items-center border-b border-slate-700 pb-4 gap-4">
       <div>
         <h1 class="text-2xl font-bold text-red-500 flex items-center gap-2">
-          🏎️ Painel do Supervisor - F1 Casos
+          🏎️ Painel do Supervisor - F1 Casos (Firebase)
         </h1>
-        <p class="text-sm text-slate-400">Gerenciamento e lançamento de pontos em tempo real</p>
+        <p class="text-sm text-slate-400">Sincronização em nuvem via Realtime Database</p>
       </div>
-      <button id="btnReset" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">
-        ⚠️ Zerar Corrida
-      </button>
+
+      <div class="flex items-center gap-3">
+        <!-- BOTÃO PARA ABRIR A TV -->
+        <a href="tv.html" target="_blank" class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition transform active:scale-95">
+          📺 Abrir Display da TV
+        </a>
+
+        <button id="btnReset" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-3 py-2 rounded-xl text-xs font-semibold transition">
+          ⚠️ Zerar Corrida
+        </button>
+      </div>
     </header>
 
     <!-- Grid de Formulários e Controles -->
@@ -161,104 +153,112 @@
   </div>
 
   <script>
-    let db = JSON.parse(localStorage.getItem('f1_casos_db')) || { escuderias: [], pilotos: [] };
+    // Configuração com as tuas credenciais reais do Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyB7-WnPu1-Xi5J5YPAXEgC7z7KrAXxjtaM",
+      authDomain: "f1-one-70a73.firebaseapp.com",
+      databaseURL: "https://f1-one-70a73-default-rtdb.firebaseio.com",
+      projectId: "f1-one-70a73",
+      storageBucket: "f1-one-70a73.firebasestorage.app",
+      messagingSenderId: "658993416912",
+      appId: "1:658993416912:web:9c32a8e37db0fcc7caacd5"
+    };
 
-    function salvar() {
-      localStorage.setItem('f1_casos_db', JSON.stringify(db));
-      window.dispatchEvent(new Event('storage'));
+    firebase.initializeApp(firebaseConfig);
+    const dbRef = firebase.database().ref('f1_casos_db');
+
+    let db = { escuderias: {}, pilotos: {} };
+
+    // Escuta em Tempo Real do Firebase
+    dbRef.on('value', (snapshot) => {
+      const data = snapshot.val();
+      db = {
+        escuderias: (data && data.escuderias) ? data.escuderias : {},
+        pilotos: (data && data.pilotos) ? data.pilotos : {}
+      };
       atualizarInterface();
-    }
+    });
 
     function atualizarInterface() {
+      const escArray = Object.keys(db.escuderias).map(k => ({ id: k, ...db.escuderias[k] }));
+      const pilArray = Object.keys(db.pilotos).map(k => ({ id: k, ...db.pilotos[k] }));
+
       // 1. Lista de Escuderias Cadastradas
       const containerEscuderias = document.getElementById('listaEscuderias');
-      if (containerEscuderias) {
-        containerEscuderias.innerHTML = '';
-        if (db.escuderias.length === 0) {
-          containerEscuderias.innerHTML = '<span class="text-xs text-slate-500">Nenhuma escuderia cadastrada.</span>';
-        }
-        db.escuderias.forEach(e => {
-          containerEscuderias.innerHTML += `
-            <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-sm">
-              <span class="w-3 h-3 rounded-full" style="background-color: ${e.cor}"></span>
-              <span class="font-semibold">${e.nome}</span>
-              <button onclick="excluirEscuderia('${e.id}')" title="Excluir Escuderia" class="text-slate-500 hover:text-red-400 ml-2 font-bold">
-                ✕
-              </button>
-            </div>
-          `;
-        });
-      }
+      containerEscuderias.innerHTML = escArray.length === 0 ? '<span class="text-xs text-slate-500">Nenhuma escuderia cadastrada.</span>' : '';
+      escArray.forEach(e => {
+        containerEscuderias.innerHTML += `
+          <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-sm">
+            <span class="w-3 h-3 rounded-full" style="background-color: ${e.cor}"></span>
+            <span class="font-semibold">${e.nome}</span>
+            <button onclick="excluirEscuderia('${e.id}')" title="Excluir Escuderia" class="text-slate-500 hover:text-red-400 ml-2 font-bold">
+              ✕
+            </button>
+          </div>
+        `;
+      });
 
       // 2. Select Escuderias
       const selectEscuderia = document.getElementById('selectEscuderia');
-      if (selectEscuderia) {
-        selectEscuderia.innerHTML = '<option value="">Selecione a Escuderia</option>';
-        db.escuderias.forEach(e => {
-          selectEscuderia.innerHTML += `<option value="${e.id}">${e.nome}</option>`;
-        });
-      }
+      selectEscuderia.innerHTML = '<option value="">Selecione a Escuderia</option>';
+      escArray.forEach(e => {
+        selectEscuderia.innerHTML += `<option value="${e.id}">${e.nome}</option>`;
+      });
 
       // 3. Select Pilotos
       const selectPiloto = document.getElementById('selectPilotoLancamento');
-      if (selectPiloto) {
-        selectPiloto.innerHTML = '<option value="">Selecione o Piloto</option>';
-        db.pilotos.forEach(p => {
-          selectPiloto.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
-        });
-      }
+      selectPiloto.innerHTML = '<option value="">Selecione o Piloto</option>';
+      pilArray.forEach(p => {
+        selectPiloto.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
+      });
 
       // 4. Tabela do Grid
       const tbody = document.getElementById('tabelaAdminBody');
-      if (tbody) {
-        tbody.innerHTML = '';
-        db.pilotos.forEach(p => {
-          const esc = db.escuderias.find(e => e.id === p.escuderiaId) || { nome: 'N/A', cor: '#999' };
-          const pontosFinais = Math.max(0, p.casos - p.penalidades);
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-750">
-              <td class="p-2 font-semibold">${p.nome}</td>
-              <td class="p-2 flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full" style="background-color: ${esc.cor}"></span>
-                ${esc.nome}
-              </td>
-              <td class="p-2 text-center text-emerald-400 font-bold">${p.casos}</td>
-              <td class="p-2 text-center text-red-400 font-bold">${p.penalidades}</td>
-              <td class="p-2 text-right font-black text-lg">${pontosFinais} pts</td>
-              <td class="p-2 text-center">
-                <button onclick="excluirPiloto('${p.id}')" class="text-xs bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-2 py-1 rounded transition">
-                  🗑️ Excluir
-                </button>
-              </td>
-            </tr>
-          `;
-        });
-      }
+      tbody.innerHTML = '';
+      pilArray.forEach(p => {
+        const esc = db.escuderias[p.escuderiaId] || { nome: 'N/A', cor: '#999' };
+        const pontosFinais = Math.max(0, p.casos - p.penalidades);
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-750">
+            <td class="p-2 font-semibold">${p.nome}</td>
+            <td class="p-2 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full" style="background-color: ${esc.cor}"></span>
+              ${esc.nome}
+            </td>
+            <td class="p-2 text-center text-emerald-400 font-bold">${p.casos}</td>
+            <td class="p-2 text-center text-red-400 font-bold">${p.penalidades}</td>
+            <td class="p-2 text-right font-black text-lg">${pontosFinais} pts</td>
+            <td class="p-2 text-center">
+              <button onclick="excluirPiloto('${p.id}')" class="text-xs bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-2 py-1 rounded transition">
+                🗑️ Excluir
+              </button>
+            </td>
+          </tr>
+        `;
+      });
     }
 
-    // Exclusão
+    // Funções de Exclusão no Firebase
     function excluirEscuderia(id) {
       if (confirm('Tem certeza que deseja excluir esta escuderia?')) {
-        db.escuderias = db.escuderias.filter(e => e.id !== id);
-        salvar();
+        firebase.database().ref(`f1_casos_db/escuderias/${id}`).remove();
       }
     }
 
     function excluirPiloto(id) {
       if (confirm('Tem certeza que deseja excluir este piloto?')) {
-        db.pilotos = db.pilotos.filter(p => p.id !== id);
-        salvar();
+        firebase.database().ref(`f1_casos_db/pilotos/${id}`).remove();
       }
     }
 
-    // Cadastros
+    // Formulários de Cadastro
     document.getElementById('formEscuderia').addEventListener('submit', (e) => {
       e.preventDefault();
       const nome = document.getElementById('nomeEscuderia').value;
       const cor = document.getElementById('corEscuderia').value;
-      
-      db.escuderias.push({ id: Date.now().toString(), nome, cor });
-      salvar();
+      const id = Date.now().toString();
+
+      firebase.database().ref(`f1_casos_db/escuderias/${id}`).set({ nome, cor });
       document.getElementById('nomeEscuderia').value = '';
     });
 
@@ -268,36 +268,27 @@
       const escuderiaId = document.getElementById('selectEscuderia').value;
       
       if (!escuderiaId) return alert('Selecione uma escuderia!');
-      
-      db.pilotos.push({ id: Date.now().toString(), nome, escuderiaId, casos: 0, penalidades: 0 });
+      const id = Date.now().toString();
+
+      firebase.database().ref(`f1_casos_db/pilotos/${id}`).set({ nome, escuderiaId, casos: 0, penalidades: 0 });
       document.getElementById('nomePiloto').value = '';
-      salvar();
     });
 
-    // Alteração de Pontos
+    // Alteração de Pontos no Firebase
     function alterarPontos(casosDiff, penDiff) {
       const pilotoId = document.getElementById('selectPilotoLancamento').value;
       if (!pilotoId) return alert('Selecione um piloto!');
-      const piloto = db.pilotos.find(p => p.id === pilotoId);
-      if (piloto) {
-        piloto.casos = Math.max(0, piloto.casos + casosDiff);
-        piloto.penalidades = Math.max(0, piloto.penalidades + penDiff);
-        salvar();
+      const p = db.pilotos[pilotoId];
+      if (p) {
+        const novosCasos = Math.max(0, p.casos + casosDiff);
+        const novasPen = Math.max(0, p.penalidades + penDiff);
+        firebase.database().ref(`f1_casos_db/pilotos/${pilotoId}`).update({ casos: novosCasos, penalidades: novasPen });
       }
     }
 
-    // Handlers Customizados
-    document.getElementById('btnAdicionarCustom').onclick = () => {
-      const val = parseInt(document.getElementById('qtdPontosCustom').value) || 1;
-      alterarPontos(val, 0);
-    };
-
-    document.getElementById('btnRemoverCustom').onclick = () => {
-      const val = parseInt(document.getElementById('qtdPontosCustom').value) || 1;
-      alterarPontos(-val, 0);
-    };
-
-    // Handlers Rápidos
+    // Handlers de Ação
+    document.getElementById('btnAdicionarCustom').onclick = () => alterarPontos(parseInt(document.getElementById('qtdPontosCustom').value) || 1, 0);
+    document.getElementById('btnRemoverCustom').onclick = () => alterarPontos(-(parseInt(document.getElementById('qtdPontosCustom').value) || 1), 0);
     document.getElementById('btnMaisUm').onclick = () => alterarPontos(1, 0);
     document.getElementById('btnMaisCinco').onclick = () => alterarPontos(5, 0);
     document.getElementById('btnPenalidadeUm').onclick = () => alterarPontos(0, 1);
@@ -305,12 +296,11 @@
 
     document.getElementById('btnReset').onclick = () => {
       if (confirm('Tem certeza que deseja zerar a pontuação de todos os pilotos?')) {
-        db.pilotos.forEach(p => { p.casos = 0; p.penalidades = 0; });
-        salvar();
+        Object.keys(db.pilotos).forEach(id => {
+          firebase.database().ref(`f1_casos_db/pilotos/${id}`).update({ casos: 0, penalidades: 0 });
+        });
       }
     };
-
-    atualizarInterface();
   </script>
 </body>
 </html>
